@@ -90,7 +90,7 @@ class BrowserSession:
         self.playwright: Playwright | None = None
         self.browser: Browser | None = None
         self.context: BrowserContext | None = None
-        
+        self.storage_state = storage_state
         self._exit_stack: AsyncExitStack | None = None
 
         self.poi_elements: list = Field(default_factory=list)
