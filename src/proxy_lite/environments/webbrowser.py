@@ -2,6 +2,8 @@ import base64
 from functools import cached_property
 from typing import Any, Literal, Optional, Self
 
+from pydantic import Field
+
 from proxy_lite.browser.browser import BrowserSession
 from proxy_lite.environments.environment_base import (
     Action,
@@ -28,6 +30,7 @@ class WebBrowserEnvironmentConfig(BaseEnvironmentConfig):
     browserbase_timeout: int = 7200
     headless: bool = True
     keep_original_image: bool = False
+    storage_state: Optional[str] = Field(default=None, description="Path to a file containing cookies and other browser storage state.")
     no_pois_in_image: bool = False
 
 
@@ -46,6 +49,7 @@ class WebBrowserEnvironment(BaseEnvironment):
             viewport_width=self.config.viewport_width,
             viewport_height=self.config.viewport_height,
             headless=self.config.headless,
+            storage_state=self.config.storage_state,
         )
         await self.browser.__aenter__()
         # Initialize other resources if necessary
