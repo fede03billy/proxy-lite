@@ -82,6 +82,7 @@ class BrowserSession:
         viewport_width: int = 1280,
         viewport_height: int = 720,
         headless: bool = True,
+        storage_state: Optional[str] = None,
     ):
         self.viewport_width = viewport_width
         self.viewport_height = viewport_height
@@ -89,6 +90,7 @@ class BrowserSession:
         self.playwright: Playwright | None = None
         self.browser: Browser | None = None
         self.context: BrowserContext | None = None
+        
         self._exit_stack: AsyncExitStack | None = None
 
         self.poi_elements: list = Field(default_factory=list)
@@ -103,6 +105,7 @@ class BrowserSession:
         self.browser = await self.playwright.chromium.launch(headless=self.headless)
         self.context = await self.browser.new_context(
             viewport={"width": self.viewport_width, "height": self.viewport_height},
+            storage_state=self.storage_state,
         )
         await self.context.new_page()
         self.context.set_default_timeout(60_000)
