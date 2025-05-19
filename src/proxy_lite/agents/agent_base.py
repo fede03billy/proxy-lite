@@ -28,7 +28,9 @@ from proxy_lite.tools import Tool
 
 class BaseAgentConfig(BaseModel):
     client: ClientConfigTypes = Field(default_factory=OpenAIClientConfig)
-    history_messages_limit: dict[MessageLabel, int] = Field(default_factory=lambda: dict())
+    history_messages_limit: dict[MessageLabel, int] = Field(
+        default_factory=lambda: dict()
+    )
     history_messages_include: Optional[dict[MessageLabel, int]] = Field(
         default=None,
         description="If set, overrides history_messages_limit by setting all message types to 0 except those specified",
@@ -73,7 +75,9 @@ class BaseAgent(BaseModel, ABC):
     def tool_descriptions(self) -> str:
         tool_descriptions = []
         for tool in self.tools:
-            func_descriptions = "\n".join("- {name}: {description}".format(**schema) for schema in tool.schema)
+            func_descriptions = "\n".join(
+                "- {name}: {description}".format(**schema) for schema in tool.schema
+            )
             tool_title = f"{tool.__class__.__name__}:\n" if len(self.tools) > 1 else ""
             tool_descriptions.append(f"{tool_title}{func_descriptions}")
         return "\n\n".join(tool_descriptions)
@@ -108,9 +112,21 @@ class BaseAgent(BaseModel, ABC):
             )
         ).model_dump()
         response_content = response_content["choices"][0]["message"]
+        # Re‑inject tool_calls as text blocks so legacy parser keeps working
+        tool_blocks = ""
+        if response_content["tool_calls"]:
+            import json, uuid
+
+            tool_blocks = "\n".join(
+                f"<tool_call>{json.dumps(tc)}</tool_call>"
+                for tc in response_content["tool_calls"]
+            )
+
+        content_text = (response_content["content"] or "") + tool_blocks
+
         assistant_message = AssistantMessage(
             role=response_content["role"],
-            content=[Text(text=response_content["content"])] if response_content["content"] else [],
+            content=[Text(text=content_text)] if content_text else [],
             tool_calls=response_content["tool_calls"],
         )
         if append_assistant_message:

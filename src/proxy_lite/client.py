@@ -51,6 +51,7 @@ class BaseClient(BaseModel, ABC):
     @classmethod
     def create(cls, config: BaseClientConfig) -> "BaseClient":
         supported_clients = {
+            "openai": OpenAIClient,
             "openai-azure": OpenAIClient,
             "convergence": ConvergenceClient,
         }
@@ -72,7 +73,7 @@ class BaseClient(BaseModel, ABC):
 
 class OpenAIClientConfig(BaseClientConfig):
     name: Literal["openai"] = "openai"
-    model_id: str = "gpt-4o"
+    model_id: str = "gpt-4.1"
     api_key: str = os.environ.get("OPENAI_API_KEY")
 
 
@@ -103,8 +104,10 @@ class OpenAIClient(BaseClient):
         optional_params = {
             "seed": seed,
             "tools": self.serializer.serialize_tools(tools) if tools else None,
-            "tool_choice": "required" if tools else None,
-            "response_format": {"type": "json_object"} if response_format else {"type": "text"},
+            "tool_choice": "auto" if tools else None,
+            "response_format": (
+                {"type": "json_object"} if response_format else {"type": "text"}
+            ),
         }
         base_params.update({k: v for k, v in optional_params.items() if v is not None})
         return await self.external_client.chat.completions.create(**base_params)
@@ -125,11 +128,13 @@ class ConvergenceClient(OpenAIClient):
     async def _validate_model(self) -> None:
         try:
             response = await self.external_client.models.list()
-            assert self.config.model_id in [model.id for model in response.data], (
-                f"Model {self.config.model_id} not found in {response.data}"
-            )
+            assert self.config.model_id in [
+                model.id for model in response.data
+            ], f"Model {self.config.model_id} not found in {response.data}"
             self._model_validated = True
-            logger.debug(f"Model {self.config.model_id} validated and connected to cluster")
+            logger.debug(
+                f"Model {self.config.model_id} validated and connected to cluster"
+            )
         except Exception as e:
             logger.error(f"Error retrieving model: {e}")
             raise e
@@ -160,7 +165,9 @@ class ConvergenceClient(OpenAIClient):
         optional_params = {
             "seed": seed,
             "tools": self.serializer.serialize_tools(tools) if tools else None,
-            "tool_choice": "auto" if tools else None,  # vLLM does not support "required"
+            "tool_choice": (
+                "auto" if tools else None
+            ),  # vLLM does not support "required"
             "response_format": response_format if response_format else {"type": "text"},
         }
         base_params.update({k: v for k, v in optional_params.items() if v is not None})

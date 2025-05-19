@@ -43,7 +43,8 @@ class SimpleSolver(BaseSolver):
     @property
     def history(self) -> MessageHistory:
         return MessageHistory(
-            messages=[SystemMessage.from_media(text=self.agent.system_prompt)] + self.agent.history.messages,
+            messages=[SystemMessage.from_media(text=self.agent.system_prompt)]
+            + self.agent.history.messages,
         )
 
     async def initialise(self, task: str, env_tools: list[Tool], env_info: str) -> None:
@@ -56,6 +57,14 @@ class SimpleSolver(BaseSolver):
         self.logger.debug(f"Initialised with task: {task}")
 
     async def act(self, observation: Observation) -> Action:
+        # If the previous env step contained tool responses, convert them
+        if observation.state.tool_responses:
+            for resp in observation.state.tool_responses:
+                self.agent.receive_tool_message(
+                    text=resp.content or "",
+                    tool_id=resp.id,
+                    label=MessageLabel.TOOL_RESPONSE,
+                )
         self.agent.receive_user_message(
             image=observation.state.image,
             text=observation.state.text,
@@ -68,7 +77,10 @@ class SimpleSolver(BaseSolver):
         self.logger.debug(f"Assistant message generated: {message}")
 
         # check tool calls for return_value
-        if any(tool_call.function["name"] == "return_value" for tool_call in message.tool_calls):
+        if any(
+            tool_call.function["name"] == "return_value"
+            for tool_call in message.tool_calls
+        ):
             self.complete = True
             arguments = json.loads(message.tool_calls[0].function["arguments"])
             if isinstance(arguments, str):
@@ -78,15 +90,23 @@ class SimpleSolver(BaseSolver):
 
         text_content = message.content[0].text
 
-        observation_match = re.search(r"<observation>(.*?)</observation>", text_content, re.DOTALL)
-        observation_content = observation_match.group(1).strip() if observation_match else ""
+        observation_match = re.search(
+            r"<observation>(.*?)</observation>", text_content, re.DOTALL
+        )
+        observation_content = (
+            observation_match.group(1).strip() if observation_match else ""
+        )
 
         self.logger.info("🌐 [bold blue]Observation:[/]")
         await self.logger.stream_message(observation_content)
 
         # Extract text between thinking tags if present
-        thinking_match = re.search(r"<thinking>(.*?)</thinking>", text_content, re.DOTALL)
-        thinking_content = thinking_match.group(1).strip() if thinking_match else text_content
+        thinking_match = re.search(
+            r"<thinking>(.*?)</thinking>", text_content, re.DOTALL
+        )
+        thinking_content = (
+            thinking_match.group(1).strip() if thinking_match else text_content
+        )
 
         self.logger.info("🧠 [bold purple]Thinking:[/]")
         await self.logger.stream_message(thinking_content)

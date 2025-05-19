@@ -13,6 +13,7 @@ class MessageLabel(str, Enum):
     USER_INPUT = "user_input"
     SCREENSHOT = "screenshot"
     AGENT_MODEL_RESPONSE = "agent_model_response"
+    TOOL_RESPONSE = "tool_response"
 
 
 MAX_MESSAGES_FOR_CONTEXT_WINDOW = {
@@ -74,7 +75,9 @@ class Message(BaseModel):
         if text is not None:
             text = Text(text=text)
         if image is not None:
-            base64_image = image if is_base64 else base64.b64encode(image).decode("utf-8")
+            base64_image = (
+                image if is_base64 else base64.b64encode(image).decode("utf-8")
+            )
             data_url = f"data:image/jpeg;base64,{base64_image}"
             image = Image(image_url=ImageUrl(url=data_url))
             content = [text, image] if text is not None else [image]

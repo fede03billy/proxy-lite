@@ -35,5 +35,8 @@ class OpenAICompatibleSerializer(BaseSerializer):
         )
 
     def serialize_tools(self, tools: list[Tool]) -> list[dict]:
-        tool_schemas = [[{"type": "function", "function": schema} for schema in tool.schema] for tool in tools]
+        tool_schemas = [
+            [{"type": "function", "function": schema} for schema in tool.schema]
+            for tool in tools
+        ]
         return list(itertools.chain.from_iterable(tool_schemas))
