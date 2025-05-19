@@ -13,7 +13,6 @@ class MessageLabel(str, Enum):
     USER_INPUT = "user_input"
     SCREENSHOT = "screenshot"
     AGENT_MODEL_RESPONSE = "agent_model_response"
-    TOOL_RESPONSE = "tool_response"
 
 
 MAX_MESSAGES_FOR_CONTEXT_WINDOW = {

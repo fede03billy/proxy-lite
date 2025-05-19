@@ -60,10 +60,9 @@ class SimpleSolver(BaseSolver):
         # If the previous env step contained tool responses, convert them
         if observation.state.tool_responses:
             for resp in observation.state.tool_responses:
-                self.agent.receive_tool_message(
+                await self.agent.receive_tool_message(
                     text=resp.content or "",
                     tool_id=resp.id,
-                    label=MessageLabel.TOOL_RESPONSE,
                 )
         self.agent.receive_user_message(
             image=observation.state.image,
